@@ -1,0 +1,324 @@
+require "graphics"
+require "bit"
+
+
+-- positions
+  local throttle_x = 80
+  local throttle_y = 80
+
+  local gear_x_offset = 120
+  local gear_y = 80
+
+  local flaps_x_offset = 320
+  local flaps_y = 55
+
+  local speedbrakes_x_offset = 300
+  local speedbrakes_y = 60
+
+dataref( "view_type", "sim/graphics/view/view_type" )
+dataref("ALT_ARMED", "sim/cockpit2/autopilot/altitude_hold_armed")
+dataref("ap_state", "sim/cockpit/autopilot/autopilot_state", "readonly")
+dataref("xp_autothrottle_enabled", "sim/cockpit2/autopilot/autothrottle_enabled", "writable")
+dataref("QNH_Pilot", "sim/cockpit2/gauges/actuators/barometer_setting_in_hg_pilot", "writable")
+dataref("ap_mode", "sim/cockpit/autopilot/autopilot_state", "readonly")
+
+local headingWindow = XPLMFindDataRef("sim/cockpit/autopilot/heading_mag")
+local speedWindow = XPLMFindDataRef("sim/cockpit/autopilot/airspeed")
+local altWindow = XPLMFindDataRef("sim/cockpit/autopilot/altitude")
+local vsWindow = XPLMFindDataRef("sim/cockpit/autopilot/vertical_velocity")
+
+local throttlePositionDR = XPLMFindDataRef("sim/flightmodel2/engines/throttle_used_ratio")
+local n1percentDR = XPLMFindDataRef("sim/cockpit2/engine/indicators/N1_percent")
+
+local n1_green_low_DR = XPLMFindDataRef("sim/aircraft/limits/green_lo_N1")
+local n1_green_high_DR = XPLMFindDataRef("sim/aircraft/limits/green_hi_N1")
+local n1_yellow_low_DR = XPLMFindDataRef("sim/aircraft/limits/yellow_lo_N1")
+local n1_yellow_high_DR = XPLMFindDataRef("sim/aircraft/limits/yellow_hi_N1")
+local n1_red_low_DR = XPLMFindDataRef("sim/aircraft/limits/red_lo_N1")
+local n1_red_high_DR = XPLMFindDataRef("sim/aircraft/limits/red_hi_N1")
+
+local n1_green_low = .20
+local n1_green_high = .89
+local n1_yellow_low = .00
+local n1_yellow_high = .19
+local n1_red_low = .90
+local n1_red_high = .200
+
+if 0 == 1 then
+--  n1_green_low = XPLMGetDataf(n1_green_low_DR)
+--  n1_green_high = PLMGetDataf(n1_green_high_DR)
+--  n1_yellow_low = XPLMGetDataf(n1_yellow_low_DR)
+--  n1_yellow_high = XPLMGetDataf(n1_yellow_high_DR)
+--  n1_red_low = XPLMGetDataf(n1_red_low_DR)
+--  n1_red_high = XPLMGetDataf(n1_red_high_DR)
+end
+
+local reverser_deployed_DR = XPLMFindDataRef("sim/flightmodel2/engines/thrust_reverser_deploy_ratio")
+
+local gear_handle_DR = XPLMFindDataRef("sim/cockpit/switches/gear_handle_status")
+local gear_deploy_DR = XPLMFindDataRef("sim/aircraft/parts/acf_gear_deploy")
+local gear_unsafe_DR = XPLMFindDataRef("sim/cockpit/warnings/annunciators/gear_unsafe")
+
+local arresting_gear_DR = XPLMFindDataRef("sim/cockpit/switches/arresting_gear")
+
+local tailhook_ratio_DR = XPLMFindDataRef("sim/flightmodel/controls/tailhook_ratio")
+local tailhook_angle_DR = XPLMFindDataRef("sim/flightmodel2/misc/tailhook_angle_degrees")
+local tailhook_deploy_DR = XPLMFindDataRef("sim/cockpit2/switches/tailhook_deploy")
+
+local flaps_handle_DR = XPLMFindDataRef("sim/cockpit2/controls/flap_ratio")
+local flaps_deployed_DR = XPLMFindDataRef("sim/flightmodel2/controls/flap1_deploy_ratio")
+
+local speedbrakes_handle_DR = XPLMFindDataRef("sim/cockpit2/controls/speedbrake_ratio")
+local speedbrakes_deployed_DR = XPLMFindDataRef("sim/flightmodel2/controls/speedbrake_ratio")
+
+isMach = XPLMFindDataRef("sim/cockpit/autopilot/airspeed_is_mach")
+
+function render(spd, isFraction)
+  if isFraction == 1 then
+    return string.format("%1.3f", spd)
+  else
+    return string.format("%03i", spd)
+  end
+end
+
+function draw_sonata_hud()
+  local isMachNow = XPLMGetDatai(isMach)
+
+-- are we in HUD view?
+  if view_type ~= 1023 then
+    return
+  end
+
+--  if XPLMGetDatai(ap_mode) < 2 then
+--    return
+--  end
+
+  ssWidth, ssHeight = XPLMGetScreenSize()
+
+  XPLMSetGraphicsState(0,0,0,1,1,0,0)
+
+  autothrottleEngaged = bit.band(ap_state, 1)
+  headingHoldEngaged = bit.band(ap_state, 2)
+  vviEngaged = bit.band(ap_state, 16)
+  flChgEngaged = bit.band(ap_state, 64)
+  altHoldEngaged = bit.band(ap_state, 16384)
+
+  -- draw some text
+  local x_pos = ssWidth * 2.85 / 10
+  local y_pos = ssHeight * 6.35 / 10
+  if isMachNow == 1 then
+     y_pos = ssHeight * 3.3 / 10
+  end   
+  if autothrottleEngaged > 0 then
+    graphics.set_color(1,0,1,1)
+  else
+    graphics.set_color(0,1,0,1)
+  end  
+  local speed = XPLMGetDataf(speedWindow)
+  draw_string_Helvetica_12(x_pos, y_pos, render(speed, isMachNow))
+
+  if altHoldEngaged > 0 then
+    graphics.set_color(0,0,1,1)
+  elseif flChgEngaged > 0 then
+    graphics.set_color(1,0,1,1)
+  elseif vviEngaged > 0 then
+    graphics.set_color(1,0,0,1)
+  else
+    graphics.set_color(0,1,0,1)
+  end
+  alt = XPLMGetDataf(altWindow)
+  draw_string_Helvetica_12(ssWidth * 6.85 / 10, ssHeight * 6.35 / 10, string.format("%5i", alt))
+
+  vvi = XPLMGetDataf(vsWindow)
+  if vviEngaged > 0 or vvi < -.5 or vvi > .5 then
+    if vviEngaged > 0 then
+      graphics.set_color(0,0,1,1)
+    elseif vvi < -.5 or vvi > .5 then
+      graphics.set_color(1,0,1,1)
+    else
+      graphics.set_color(0,1,0,1)
+    end
+    draw_string_Helvetica_12(ssWidth * 7.6 / 10, ssHeight * 4.9 / 10, string.format("%5i", vvi))
+  end
+  
+  hdg = XPLMGetDataf(headingWindow)
+  if headingHoldEngaged > 0 then
+    graphics.set_color(1,0,1,1)
+  else  
+    graphics.set_color(0,1,0,1)
+  end
+  draw_string_Helvetica_12(ssWidth * 5 / 10, ssHeight * 1 / 10, string.format("%03d", hdg))
+
+  draw_throttle()
+
+  draw_landing_gear(ssWidth)
+  draw_flaps(ssWidth)
+  draw_speedbrakes(ssWidth)
+
+--  graphics.set_color(1,1,1,1)
+--  draw_string_Helvetica_18(12, 145, string.format("%3.2f", COM1/100))
+
+
+end
+
+do_every_draw("draw_sonata_hud()")
+
+function draw_flaps(ssWidth)
+  local flaps_handle = XPLMGetDataf(flaps_handle_DR)
+  local flaps_deployed = XPLMGetDataf(flaps_deployed_DR)
+
+  if flaps_deployed > 0 or flaps_handle > 0 then
+     graphics.set_color(1,1,1,.4)
+     graphics.draw_filled_arc(ssWidth - flaps_x_offset, flaps_y, 90, 90 + (35 * flaps_deployed), 60)
+     graphics.draw_arc(ssWidth - flaps_x_offset, flaps_y, 90, 90 + (35 * flaps_handle), 62)
+  end
+end
+
+function draw_speedbrakes(ssWidth)
+  local speedbrakes_handle = XPLMGetDataf(speedbrakes_handle_DR)
+  local speedbrakes_deployed = XPLMGetDataf(speedbrakes_deployed_DR)
+  if speedbrakes_deployed > .01 or speedbrakes_handle > .01 or speedbrakes_handle < -0.01 then
+     graphics.set_color(1,1,.7,.4)
+     graphics.draw_filled_arc(ssWidth - speedbrakes_x_offset, speedbrakes_y, 90 - (25 * speedbrakes_deployed), 90, 30)
+     graphics.draw_arc(ssWidth - speedbrakes_x_offset, speedbrakes_y, 90 - (25 * speedbrakes_handle), 90, 32)
+     if speedbrakes_handle < -.01 then
+       draw_string_Helvetica_12(ssWidth - speedbrakes_x_offset, speedbrakes_y + 10, "Armed")
+     end
+  end
+
+end
+
+function draw_landing_gear(ssWidth)
+
+  local gear_x = ssWidth - gear_x_offset
+  local gear_handle = XPLMGetDatai(gear_handle_DR)
+  local gear_deploy = XPLMGetDatavf(gear_deploy_DR, 0, 3)
+  local gear_unsafe = XPLMGetDatai(gear_unsafe_DR)
+
+  local gear_mismatch = 0
+
+  local nose_deploy = gear_deploy[0]
+  local left_deploy = gear_deploy[1]
+  local right_deploy = gear_deploy[2]
+
+  if gear_handle ~= nose_deploy then
+     gear_mismatch = 1
+  end
+  if gear_handle ~= left_deploy then
+     gear_mismatch = 1
+  end
+  if gear_handle ~= right_deploy then
+     gear_mismatch = 1
+  end
+
+  if gear_handle == 1 or gear_unsafe == 1 or gear_mismatch == 1 then
+    graphics.set_color(1, 1, 1, .7)
+    graphics.draw_circle(gear_x, gear_y, 15, 2)
+    graphics.draw_circle(gear_x - 25, gear_y - 30, 14, 2)
+    graphics.draw_circle(gear_x + 25, gear_y - 30, 14, 2)
+
+    set_gear_color(gear_handle, nose_deploy)
+    graphics.draw_filled_circle(gear_x, gear_y, 12)
+
+    set_gear_color(gear_handle, left_deploy)
+    graphics.draw_filled_circle(gear_x - 25, gear_y - 30, 12)
+
+    set_gear_color(gear_handle, right_deploy)
+    graphics.draw_filled_circle(gear_x + 25, gear_y - 30, 12)
+
+  end
+
+end
+
+function set_gear_color(gear_handle, deploy)
+    if deploy == 1 then
+      graphics.set_color(0, 1, 0, .7)
+    elseif gear_handle == 0 and deploy > 0 then
+      graphics.set_color(1, 1, 0, .7)
+    elseif gear_handle == 1 then
+      graphics.set_color(1, 0, 0, .7)
+    else 
+      graphics.set_color(1, 0, 0, 0)
+    end
+end
+
+
+function draw_throttle()
+
+-- throttle
+  local throttlePosition = XPLMGetDatavf(throttlePositionDR, 0, 2)
+  local n1percent = XPLMGetDatavf(n1percentDR, 0, 2)
+  local reverser = XPLMGetDatavf(reverser_deployed_DR, 0, 2)
+
+  local n1percentLeft = n1percent[0]/100
+  local n1percentRight = n1percent[1]/100
+
+  local throttleLeft = (.8 * throttlePosition[0]) + .2
+  local throttleRight = (.8 * throttlePosition[1]) + .2
+
+  local reverserLeft = reverser[0]
+  local reverserRight = reverser[1]
+
+-- actual N1
+ -- Left engine
+
+  set_throttle_arc_color(n1percentLeft)
+  graphics.draw_filled_arc(throttle_x, throttle_y, 90, 90 + (270 * n1percentLeft), 50)
+
+  set_throttle_text_color(n1percentLeft)
+  draw_string_Helvetica_12(throttle_x + 20, throttle_y + 5, string.format("%3i", (n1percentLeft * 100) +.5))
+
+ -- Right engine
+  set_throttle_arc_color(n1percentRight)
+  graphics.draw_filled_arc(throttle_x + 110, throttle_y, 90, 90 + (270 * n1percentRight), 50)
+
+  set_throttle_text_color(n1percentRight)
+  draw_string_Helvetica_12(throttle_x + 120, throttle_y + 5, string.format("%3i", (n1percentRight * 100) +.5))
+
+-- target N1
+  set_throttle_arc_color(throttleLeft)
+  graphics.draw_arc(throttle_x, throttle_y, 90, 90 + (270 * throttleLeft), 52)
+
+  set_throttle_arc_color(throttleRight)
+  graphics.draw_arc(throttle_x + 110, throttle_y, 90, 90 + (270 * throttleRight), 52)
+
+  set_throttle_text_color(throttleLeft)
+  draw_string_Helvetica_12(throttle_x + 20, throttle_y + 20, string.format("%3i", throttleLeft * 100))
+
+  set_throttle_text_color(throttleRight)
+  draw_string_Helvetica_12(throttle_x + 120, throttle_y + 20, string.format("%3i", throttleRight * 100))
+
+-- Reverser
+
+  if reverserLeft > .01 then
+    graphics.set_color(0, 0, 1, .7)
+    graphics.draw_arc(throttle_x, throttle_y, 90 - (90 * reverserLeft), 90, 52)
+  end
+
+  if reverserRight > .01 then
+    graphics.set_color(0, 0, 1, .7)
+    graphics.draw_arc(throttle_x + 110, throttle_y, 90 - (90 * reverserRight), 90, 52)
+  end
+
+end
+
+function set_throttle_arc_color(n1percent)
+  if n1percent >= n1_red_low then
+    graphics.set_color(1, 0, 0, .8)
+  elseif n1percent >= n1_yellow_low and n1percent < n1_yellow_high then
+    graphics.set_color(1, 1, 0, .6)
+  else
+    graphics.set_color(1, 1, 1, .2)
+  end
+end
+
+function set_throttle_text_color(n1percent)
+   if n1percent >= n1_red_low then
+    graphics.set_color(1, 0, 0, 1)
+  elseif n1percent >= n1_yellow_low and n1percent < n1_yellow_high then
+    graphics.set_color(1, 1, 0, .6)
+  else
+    graphics.set_color(1, 1, 1, .3)
+  end
+end
+
