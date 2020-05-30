@@ -6,6 +6,9 @@ require "bit"
   local throttle_x = 80
   local throttle_y = 80
 
+  local brakes_x = 340
+  local brakes_y = 80
+
   local gear_x_offset = 120
   local gear_y = 80
 
@@ -29,6 +32,11 @@ local vsWindow = XPLMFindDataRef("sim/cockpit/autopilot/vertical_velocity")
 
 local throttlePositionDR = XPLMFindDataRef("sim/flightmodel2/engines/throttle_used_ratio")
 local n1percentDR = XPLMFindDataRef("sim/cockpit2/engine/indicators/N1_percent")
+
+local autobrakeDR = XPLMFindDataRef("sim/cockpit2/switches/auto_brake_level")
+local parkbrakeDR = XPLMFindDataRef("sim/flightmodel/controls/parkbrake")
+local leftbrakeDR = XPLMFindDataRef("sim/cockpit2/controls/left_brake_ratio")
+local rightbrakeDR = XPLMFindDataRef("sim/cockpit2/controls/right_brake_ratio")
 
 local n1_green_low_DR = XPLMFindDataRef("sim/aircraft/limits/green_lo_N1")
 local n1_green_high_DR = XPLMFindDataRef("sim/aircraft/limits/green_hi_N1")
@@ -154,6 +162,7 @@ function draw_sonata_hud()
   draw_landing_gear(ssWidth)
   draw_flaps(ssWidth)
   draw_speedbrakes(ssWidth)
+  draw_brakes(ssWidth)
 
 --  graphics.set_color(1,1,1,1)
 --  draw_string_Helvetica_18(12, 145, string.format("%3.2f", COM1/100))
@@ -187,6 +196,53 @@ function draw_speedbrakes(ssWidth)
   end
 
 end
+
+function draw_brakes(ssWidth)
+  autobrake = XPLMGetDatai(autobrakeDR)  -- 0 is RTO (Rejected Take-Off), 1 is off, 2->5 are increasing auto-brake levels.
+  parkbrake = XPLMGetDataf(parkbrakeDR)
+  left_toe_brake = XPLMGetDataf(leftbrakeDR)
+  right_toe_brake = XPLMGetDataf(rightbrakeDR)
+  text = ""
+  draw = 0
+  if autobrake == 0 then
+    text = "RTO"
+    draw = 1
+  elseif autobrake > 1 then
+    text = autobrake
+    draw = 1
+  end
+  if draw == 1 then
+     graphics.set_color(1,1,1,.4)
+     draw_string_Helvetica_12(brakes_x, brakes_y - 60, "Armed: " .. text)
+  end
+
+  local left_brake = math.min(1, parkbrake + left_toe_brake)
+  local right_brake = math.min(1, parkbrake + right_toe_brake)
+
+  if draw == 1 or left_brake ~= 0 then
+    draw_brake(brakes_x, brakes_y - 20, left_brake)
+  end
+  if draw == 1 or right_brake ~= 0 then
+    draw_brake(brakes_x + 70, brakes_y - 20, right_brake)
+  end
+ 
+-- Armed: RTO, 1, 2, 3, 4, 5
+-- OFF
+-- Applied
+
+end
+
+function draw_brake(x, y, ratio)
+    graphics.set_color(.3,.3,.3,.8)
+    graphics.draw_circle(x, y, 15, 20)
+    graphics.set_color(1, 1, .3,.4)
+    graphics.draw_arc(x, y, 90, 90 + (60 * ratio), 20, 6)
+    graphics.draw_arc(x, y, 90 - (60 * ratio), 90, 20, 6)
+    graphics.draw_arc(x, y, 270, 270 + (60 * ratio), 20, 6)
+    graphics.draw_arc(x, y, 270 - (60 * ratio), 270, 20, 6)
+    draw_string_Helvetica_12(x - 10, y + 25, string.format("%3i", ratio * 100))
+end
+
 
 function draw_landing_gear(ssWidth)
 
@@ -277,10 +333,10 @@ function draw_throttle()
 
 -- target N1
   set_throttle_arc_color(throttleLeft)
-  graphics.draw_arc(throttle_x, throttle_y, 90, 90 + (270 * throttleLeft), 52)
+  graphics.draw_arc(throttle_x, throttle_y, 90, 90 + (270 * throttleLeft), 52, 2)
 
   set_throttle_arc_color(throttleRight)
-  graphics.draw_arc(throttle_x + 110, throttle_y, 90, 90 + (270 * throttleRight), 52)
+  graphics.draw_arc(throttle_x + 110, throttle_y, 90, 90 + (270 * throttleRight), 52, 2)
 
   set_throttle_text_color(throttleLeft)
   draw_string_Helvetica_12(throttle_x + 20, throttle_y + 20, string.format("%3i", throttleLeft * 100))
