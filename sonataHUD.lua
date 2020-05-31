@@ -207,8 +207,11 @@ function draw_brakes(ssWidth)
   if autobrake == 0 then
     text = "RTO"
     draw = 1
+  elseif autobrake == 5 then
+    text = "MAX"
+    draw = 1
   elseif autobrake > 1 then
-    text = autobrake
+    text = autobrake - 1
     draw = 1
   end
   if draw == 1 then
