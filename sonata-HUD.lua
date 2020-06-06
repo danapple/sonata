@@ -1,10 +1,10 @@
 require "graphics"
 require "bit"
 
-
 -- positions
   local throttle_x = 80
   local throttle_y = 80
+  local throttle_right_x_offset = 130
 
   local brakes_x = 340
   local brakes_y = 80
@@ -83,7 +83,7 @@ function draw_sonata_hud()
 
   autothrottleEngaged = bit.band(ap_state, 1)
 
-  draw_throttle()
+  draw_throttle(autothrottleEngaged)
   draw_landing_gear(ssWidth)
   draw_flaps(ssWidth)
   draw_speedbrakes(ssWidth)
@@ -223,7 +223,7 @@ function set_gear_color(gear_handle, deploy)
 end
 
 
-function draw_throttle()
+function draw_throttle(autothrottleEngaged)
 
 -- throttle
   local throttlePosition = XPLMGetDatavf(throttlePositionDR, 0, 2)
@@ -250,23 +250,31 @@ function draw_throttle()
 
  -- Right engine
   set_throttle_arc_color(n1percentRight)
-  graphics.draw_filled_arc(throttle_x + 110, throttle_y, 90, 90 + (270 * n1percentRight), 50)
+  graphics.draw_filled_arc(throttle_x + throttle_right_x_offset, throttle_y, 90, 90 + (270 * n1percentRight), 50)
 
   set_throttle_text_color(n1percentRight)
-  draw_string_Helvetica_12(throttle_x + 120, throttle_y + 5, string.format("%3i", (n1percentRight * 100) +.5))
+  draw_string_Helvetica_12(throttle_x + throttle_right_x_offset + 10, throttle_y + 5, string.format("%3i", (n1percentRight * 100) +.5))
 
 -- target N1
   set_throttle_arc_color(throttleLeft)
   graphics.draw_arc(throttle_x, throttle_y, 90, 90 + (270 * throttleLeft), 52, 2)
+  if autothrottleEngaged == 1 then
+     graphics.set_color(1,0,1,.3)
+     graphics.draw_outer_tracer( throttle_x, throttle_y, 90 + (270 * throttleLeft), 52, 15)
+  end
 
   set_throttle_arc_color(throttleRight)
-  graphics.draw_arc(throttle_x + 110, throttle_y, 90, 90 + (270 * throttleRight), 52, 2)
+  graphics.draw_arc(throttle_x + throttle_right_x_offset, throttle_y, 90, 90 + (270 * throttleRight), 52, 2)
+  if autothrottleEngaged == 1 then
+     graphics.set_color(1,0,1,.3)
+     graphics.draw_outer_tracer( throttle_x + throttle_right_x_offset, throttle_y, 90 + (270 * throttleRight), 52, 15)
+  end
 
   set_throttle_text_color(throttleLeft)
   draw_string_Helvetica_12(throttle_x + 20, throttle_y + 20, string.format("%3i", throttleLeft * 100))
 
   set_throttle_text_color(throttleRight)
-  draw_string_Helvetica_12(throttle_x + 120, throttle_y + 20, string.format("%3i", throttleRight * 100))
+  draw_string_Helvetica_12(throttle_x + throttle_right_x_offset + 10, throttle_y + 20, string.format("%3i", throttleRight * 100))
 
 -- Reverser
 
