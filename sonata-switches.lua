@@ -12,4 +12,7 @@ create_switch( (2*160) + 27, "sonata/vsStep", 0, 10, 100)
 create_switch( (2*160) + 24, "sim/cockpit/switches/gear_handle_status", 0, 1, 0) -- landing gear
 
 create_switch( (2*160) + 18, "sim/cockpit2/switches/landing_lights_on", 0, 0, 1) -- landing lights
---create_switch( (2*160) + 25, "sim/cockpit2/autopilot/autothrottle_enabled", 0, 0, 1)   -- autothrottle arm
+--create_switch( (2*160) + 25, "sim/cockpit/autopilot/autopilot_mode", 0, 0, 2)   -- autothrottle arm
+create_positive_edge_flip( (2*160) + 25, "sim/cockpit/autopilot/autopilot_mode", 0, 2)
+create_positive_edge_flip( (2*160) + 25, "sim/cockpit/autopilot/autopilot_mode", 2, 0)
+
