@@ -12,6 +12,8 @@ local vsWindow = XPLMFindDataRef("sim/cockpit/autopilot/vertical_velocity")
 
 isMach = XPLMFindDataRef("sim/cockpit/autopilot/airspeed_is_mach")
 
+apModeDR = XPLMFindDataRef("sim/cockpit/autopilot/autopilot_mode")
+
 function render(spd, isFraction)
   if isFraction == 1 then
     return string.format("%1.3f", spd)
@@ -38,7 +40,11 @@ function draw_sonata_ap_hud()
   flChgEngaged = bit.band(ap_state, 64)
   altHoldEngaged = bit.band(ap_state, 16384)
 
-  -- draw some text
+  local apEngaged = 0
+  if XPLMGetDatai(apModeDR) == 2 then
+    apEngaged = 1
+  end
+
   local x_pos = ssWidth * 2.85 / 10
   local y_pos = ssHeight * 6.35 / 10
   if isMachNow == 1 then
@@ -52,38 +58,40 @@ function draw_sonata_ap_hud()
   local speed = XPLMGetDataf(speedWindow)
   draw_string_Helvetica_12(x_pos, y_pos, render(speed, isMachNow))
 
-  if altHoldEngaged > 0 then
-    graphics.set_color(0,0,1,1)
-  elseif flChgEngaged > 0 then
-    graphics.set_color(1,0,1,1)
-  elseif vviEngaged > 0 then
-    graphics.set_color(1,0,0,1)
-  else
-    graphics.set_color(0,1,0,1)
-  end
-  alt = XPLMGetDataf(altWindow)
-  draw_string_Helvetica_12(ssWidth * 6.85 / 10, ssHeight * 6.35 / 10, string.format("%5i", alt))
 
-  vvi = XPLMGetDataf(vsWindow)
-  if vviEngaged > 0 or vvi < -.5 or vvi > .5 then
-    if vviEngaged > 0 then
+  if apEngaged == 1 then
+    if altHoldEngaged > 0 then
       graphics.set_color(0,0,1,1)
-    elseif vvi < -.5 or vvi > .5 then
+    elseif flChgEngaged > 0 then
       graphics.set_color(1,0,1,1)
+    elseif vviEngaged > 0 then
+      graphics.set_color(1,0,0,1)
     else
       graphics.set_color(0,1,0,1)
     end
-    draw_string_Helvetica_12(ssWidth * 7.6 / 10, ssHeight * 4.9 / 10, string.format("%5i", vvi))
-  end
-  
-  hdg = XPLMGetDataf(headingWindow)
-  if headingHoldEngaged > 0 then
-    graphics.set_color(1,0,1,1)
-  else  
-    graphics.set_color(0,1,0,1)
-  end
-  draw_string_Helvetica_12(ssWidth * 5 / 10, ssHeight * 1 / 10, string.format("%03d", hdg))
+    alt = XPLMGetDataf(altWindow)
+    draw_string_Helvetica_12(ssWidth * 6.85 / 10, ssHeight * 6.35 / 10, string.format("%5i", alt))
 
+    vvi = XPLMGetDataf(vsWindow)
+    if vviEngaged > 0 or vvi < -.5 or vvi > .5 then
+      if vviEngaged > 0 then
+        graphics.set_color(0,0,1,1)
+      elseif vvi < -.5 or vvi > .5 then
+        graphics.set_color(1,0,1,1)
+      else
+        graphics.set_color(0,1,0,1)
+      end
+      draw_string_Helvetica_12(ssWidth * 7.6 / 10, ssHeight * 4.9 / 10, string.format("%5i", vvi))
+    end
+
+    hdg = XPLMGetDataf(headingWindow)
+    if headingHoldEngaged > 0 then
+      graphics.set_color(1,0,1,1)
+    else  
+      graphics.set_color(0,1,0,1)
+    end
+    draw_string_Helvetica_12(ssWidth * 5 / 10, ssHeight * 1 / 10, string.format("%03d", hdg))
+  end
 --  graphics.set_color(1,1,1,1)
 --  draw_string_Helvetica_18(12, 145, string.format("%3.2f", COM1/100))
 
