@@ -20,7 +20,7 @@ function render(spd, isFraction)
   end
 end
 
-function draw_sonata_hud()
+function draw_sonata_ap_hud()
   local isMachNow = XPLMGetDatai(isMach)
 
 -- are we in HUD view?
@@ -90,5 +90,5 @@ function draw_sonata_hud()
 
 end
 
-do_every_draw("draw_sonata_hud()")
+do_every_draw("draw_sonata_ap_hud()")
 
