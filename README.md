@@ -1,5 +1,4 @@
-# sonata
-Aerial Sonata enhancements for [X-Plane](https://www.x-plane.com/) utilizing [FlyWithLua](https://forums.x-plane.org/index.php?/files/file/38445-flywithlua-ng-next-generation-edition-for-x-plane-11-win-lin-mac/)
+[Aerial Sonata](https://www.linkedin.com/company/aerial-sonata) enhancements for [X-Plane](https://www.x-plane.com/) utilizing [FlyWithLua](https://forums.x-plane.org/index.php?/files/file/38445-flywithlua-ng-next-generation-edition-for-x-plane-11-win-lin-mac/)
 
 The included .lua scripts provided some fun enhancements for X-Plane.  Primarily, they enhance the HUD view to make it more possible to conduct all phases of flight without using a 2D or 3D cockpit.  They do this by providing display of the autopilot settings for altitude, heading, speed and vertical speed, as well as throttle position, engine N1 speed, wheel brakes application, speed brake deployment, flap deployment and landing gear position.  The autopilot and physical indicators are separated into two separate scripts.
 
