@@ -6,7 +6,9 @@ The included .lua scripts provided some fun enhancements for X-Plane.  Primarily
 All of these scripts were tested on X-Plane 11.41 and FlyWithLua 2.7.22.  FlyWithLua must be installed for these scripts to work.
 
 Included scripts:
+```
 sonata-HUD.lua: Displays indicators for physical surfaces: throttle, engine N1, brakes, speed brakes, flaps, landing gear
 sonata-AP-HUD.lua: Displays indicators for autopilot settings: speed, heading, altitude, vertical speed, color-coded to indicate modes
 sonata-commands.lua: Commands for manipulating the autopilot with rotary encoders with push buttons
 sonata-switches.lua: Examples of FlyWithLua code to help integrate external controls
+```
